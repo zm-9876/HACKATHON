@@ -3,8 +3,35 @@ import { Link } from "react-router-dom";
 import "./auth.css";
 import "../theme.css";
 
-const employeeInitial = { name: "", email: "", password: "", phone: "", cnic: "", department: "Operations", experience: "", qualification: "" };
-const Field = ({ label, children }) => <label className="auth-field"><span className="auth-label">{label}</span>{children}</label>;
+const employeeInitial = {
+  name: "", email: "", password: "", phone: "", cnic: "",
+  department: "Operations", experience: "", qualification: "",
+};
+
+const Field = ({ label, children }) => (
+  <label className="auth-field">
+    <span className="auth-label">{label}</span>
+    {children}
+  </label>
+);
+
+// Avoid showing raw Firebase errors (auth/invalid-credential) to customers/staff.
+// Use the same generic message for incorrect email and password to avoid
+// revealing whether a particular email has an account.
+function friendlyLoginError(error) {
+  const code = error?.code;
+  if (["auth/invalid-credential", "auth/wrong-password", "auth/user-not-found", "auth/invalid-email"].includes(code)) {
+    return "Incorrect email or password. Please try again.";
+  }
+  if (code === "auth/too-many-requests") {
+    return "Too many login attempts. Please try again later or reset your password.";
+  }
+  if (code === "auth/network-request-failed") {
+    return "Network error. Check your internet connection and try again.";
+  }
+  // Preserve existing app-specific messages such as "waiting for manager approval".
+  return error?.message || "Unable to access your account.";
+}
 
 export default function Login({ onLogin, onApplyEmployee, passwordChangeRequired, onSetCustomerPassword }) {
   const [screen, setScreen] = useState("login");
@@ -15,6 +42,7 @@ export default function Login({ onLogin, onApplyEmployee, passwordChangeRequired
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
+
   useEffect(() => {
     if (passwordChangeRequired) {
       setScreen("customer-password");
@@ -22,13 +50,192 @@ export default function Login({ onLogin, onApplyEmployee, passwordChangeRequired
       setMessage("");
     }
   }, [passwordChangeRequired]);
-  const openScreen = (next) => { setScreen(next); setError(""); setMessage(""); };
-  const submitLogin = async (event) => { event.preventDefault(); setLoading(true); setError(""); try { await onLogin(loginForm, portal); } catch (reason) { setError(reason.message || "Unable to access your account."); } finally { setLoading(false); } };
-  const submitEmployee = async (event) => { event.preventDefault(); setLoading(true); setError(""); try { await onApplyEmployee(employeeForm); setEmployeeForm(employeeInitial); setScreen("login"); setMessage("Application submitted. You can sign in only after manager approval."); } catch (reason) { setError(reason.message || "Could not submit your employee application."); } finally { setLoading(false); } };
-  const submitCustomerPassword = async (event) => { event.preventDefault(); setError(""); if (passwordForm.password !== passwordForm.confirm) return setError("Passwords do not match."); setLoading(true); try { await onSetCustomerPassword(passwordForm.password); setPasswordForm({ password: "", confirm: "" }); } catch (reason) { setError(reason.message || "Could not save your permanent password."); } finally { setLoading(false); } };
-  return <main className="auth-wrapper"><section className="auth-card auth-card--premium"><div className="auth-orbit auth-orbit--one" /><div className="auth-orbit auth-orbit--two" /><div className="auth-brand"><span>V</span> Vertex<span>Bank</span><small className="auth-secure-chip">Secure access</small></div>
-    {screen === "login" && <><p className="auth-kicker">Enterprise banking portal</p><div className="portal-tabs" role="tablist"><button type="button" className={portal === "customer" ? "active" : ""} onClick={() => setPortal("customer")}>Customer</button><button type="button" className={portal === "staff" ? "active" : ""} onClick={() => setPortal("staff")}>Employee / Manager</button></div><h1 className="auth-title">{portal === "customer" ? "Your finances, clearly." : "Secure staff workspace."}</h1><p className="auth-subtitle">{portal === "customer" ? "Customer accounts and credentials are created only by authorized employees or managers." : "Employee accounts require manager approval before sign in."}</p>{message && <div className="auth-success">{message}</div>}{error && <div className="auth-banner" role="alert">{error}</div>}<form onSubmit={submitLogin}><Field label="Email address"><input className="auth-input" required type="email" autoComplete="email" value={loginForm.email} onChange={(event) => setLoginForm({ ...loginForm, email: event.target.value })} placeholder="you@example.com" /></Field><Field label="Password"><input className="auth-input" required minLength="6" type="password" autoComplete="current-password" value={loginForm.password} onChange={(event) => setLoginForm({ ...loginForm, password: event.target.value })} placeholder="Enter your password" /></Field><button className="auth-button" disabled={loading}>{loading ? "Verifying access..." : portal === "customer" ? "Sign in to banking" : "Sign in to workspace"}</button></form><div className="auth-footer">{portal === "customer" ? <small>Need an account? <a className="auth-contact-link" href="https://mail.google.com/mail/?view=cm&fs=1&to=zm271524@gmail.com&su=Customer%20account%20creation%20request" target="_blank" rel="noreferrer">Request account creation at zm271524@gmail.com</a>. An employee or manager will verify your details and create your credentials.</small> : <button className="auth-switch-button" type="button" onClick={() => openScreen("employee-apply")}>New employee? Apply for access <b>→</b></button>}<Link className="auth-home-link" to="/">← Back to homepage</Link></div></>}
-    {screen === "employee-apply" && <><p className="auth-kicker">Employee application</p><h1 className="auth-title">Apply for bank access.</h1><p className="auth-subtitle">Submit your complete details. Manager approval is required before you can log in.</p>{error && <div className="auth-banner" role="alert">{error}</div>}<form onSubmit={submitEmployee}><div className="application-grid"><Field label="Full name"><input className="auth-input" required value={employeeForm.name} onChange={(event) => setEmployeeForm({ ...employeeForm, name: event.target.value })} placeholder="Full legal name" /></Field><Field label="Phone number"><input className="auth-input" required type="tel" value={employeeForm.phone} onChange={(event) => setEmployeeForm({ ...employeeForm, phone: event.target.value })} placeholder="03XX XXXXXXX" /></Field></div><div className="application-grid"><Field label="Email address"><input className="auth-input" required type="email" value={employeeForm.email} onChange={(event) => setEmployeeForm({ ...employeeForm, email: event.target.value })} placeholder="name@email.com" /></Field><Field label="CNIC"><input className="auth-input" required value={employeeForm.cnic} onChange={(event) => setEmployeeForm({ ...employeeForm, cnic: event.target.value })} placeholder="XXXXX-XXXXXXX-X" /></Field></div><div className="application-grid"><Field label="Create password"><input className="auth-input" required minLength="6" type="password" value={employeeForm.password} onChange={(event) => setEmployeeForm({ ...employeeForm, password: event.target.value })} placeholder="At least 6 characters" /></Field><Field label="Department"><select className="auth-input" value={employeeForm.department} onChange={(event) => setEmployeeForm({ ...employeeForm, department: event.target.value })}><option>Operations</option><option>Customer Service</option><option>Credit</option><option>Compliance</option></select></Field></div><div className="application-grid"><Field label="Experience"><input className="auth-input" required value={employeeForm.experience} onChange={(event) => setEmployeeForm({ ...employeeForm, experience: event.target.value })} placeholder="e.g. 2 years" /></Field><Field label="Qualification"><input className="auth-input" required value={employeeForm.qualification} onChange={(event) => setEmployeeForm({ ...employeeForm, qualification: event.target.value })} placeholder="e.g. BBA Finance" /></Field></div><button className="auth-button" disabled={loading}>{loading ? "Submitting application..." : "Submit for manager approval"}</button></form><button className="back-button" type="button" onClick={() => openScreen("login")}>← Back to sign in</button></>}
-    {screen === "customer-password" && <><p className="auth-kicker">First-time account security</p><h1 className="auth-title">Set your permanent password.</h1><p className="auth-subtitle">Your temporary password worked. Choose the password you want to use for all future sign-ins.</p>{error && <div className="auth-banner" role="alert">{error}</div>}<form onSubmit={submitCustomerPassword}><Field label="New permanent password"><input className="auth-input" required minLength="8" type="password" autoComplete="new-password" value={passwordForm.password} onChange={(event) => setPasswordForm({ ...passwordForm, password: event.target.value })} placeholder="At least 8 characters" /></Field><Field label="Confirm permanent password"><input className="auth-input" required minLength="8" type="password" autoComplete="new-password" value={passwordForm.confirm} onChange={(event) => setPasswordForm({ ...passwordForm, confirm: event.target.value })} placeholder="Enter the same password again" /></Field><button className="auth-button" disabled={loading}>{loading ? "Securing account..." : "Save permanent password"}</button></form></>}
-  </section></main>;
+
+  const openScreen = (next) => {
+    setScreen(next);
+    setError("");
+    setMessage("");
+  };
+
+  const submitLogin = async (event) => {
+    event.preventDefault();
+    setLoading(true);
+    setError("");
+    try {
+      await onLogin(loginForm, portal);
+    } catch (reason) {
+      setError(friendlyLoginError(reason));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const submitEmployee = async (event) => {
+    event.preventDefault();
+    setLoading(true);
+    setError("");
+    try {
+      await onApplyEmployee(employeeForm);
+      setEmployeeForm(employeeInitial);
+      setScreen("login");
+      setMessage("Application submitted. You can sign in only after manager approval.");
+    } catch (reason) {
+      setError(reason?.message || "Could not submit your employee application.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const submitCustomerPassword = async (event) => {
+    event.preventDefault();
+    setError("");
+    if (passwordForm.password !== passwordForm.confirm) {
+      setError("Passwords do not match.");
+      return;
+    }
+    setLoading(true);
+    try {
+      await onSetCustomerPassword(passwordForm.password);
+      setPasswordForm({ password: "", confirm: "" });
+    } catch (reason) {
+      setError(reason?.code === "auth/requires-recent-login"
+        ? "For security, sign out and sign in again with your temporary password before changing it."
+        : reason?.message || "Could not save your permanent password.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <main className="auth-wrapper">
+      <section className="auth-card auth-card--premium">
+        <div className="auth-orbit auth-orbit--one" />
+        <div className="auth-orbit auth-orbit--two" />
+        <div className="auth-brand">
+          <span>V</span> Vertex<span>Bank</span>
+          <small className="auth-secure-chip">Secure access</small>
+        </div>
+
+        {screen === "login" && (
+          <>
+            <p className="auth-kicker">Enterprise banking portal</p>
+            <div className="portal-tabs" role="tablist">
+              <button type="button" className={portal === "customer" ? "active" : ""} onClick={() => setPortal("customer")}>Customer</button>
+              <button type="button" className={portal === "staff" ? "active" : ""} onClick={() => setPortal("staff")}>Employee / Manager</button>
+            </div>
+            <h1 className="auth-title">{portal === "customer" ? "Your finances, clearly." : "Secure staff workspace."}</h1>
+            <p className="auth-subtitle">{portal === "customer"
+              ? "Customer accounts and credentials are created only by authorized employees or managers."
+              : "Employee accounts require manager approval before sign in."}</p>
+            {message && <div className="auth-success">{message}</div>}
+            {error && <div className="auth-banner" role="alert">{error}</div>}
+            <form onSubmit={submitLogin}>
+              <Field label="Email address">
+                <input className="auth-input" required type="email" autoComplete="email"
+                  value={loginForm.email}
+                  onChange={(event) => setLoginForm({ ...loginForm, email: event.target.value })}
+                  placeholder="you@example.com" />
+              </Field>
+              <Field label="Password">
+                <input className="auth-input" required minLength="6" type="password" autoComplete="current-password"
+                  value={loginForm.password}
+                  onChange={(event) => setLoginForm({ ...loginForm, password: event.target.value })}
+                  placeholder="Enter your password" />
+              </Field>
+              <button className="auth-button" disabled={loading}>
+                {loading ? "Verifying access..." : portal === "customer" ? "Sign in to banking" : "Sign in to workspace"}
+              </button>
+            </form>
+            <div className="auth-footer">
+              {portal === "customer" ? (
+                <small>
+                  Need an account? <a className="auth-contact-link"
+                    href="https://mail.google.com/mail/?view=cm&fs=1&to=zm271524@gmail.com&su=Customer%20account%20creation%20request"
+                    target="_blank" rel="noreferrer">Request account creation at zm271524@gmail.com</a>.
+                  An employee or manager will verify your details and create your credentials.
+                </small>
+              ) : (
+                <button className="auth-switch-button" type="button" onClick={() => openScreen("employee-apply")}>
+                  New employee? Apply for access <b>→</b>
+                </button>
+              )}
+              <Link className="auth-home-link" to="/">← Back to homepage</Link>
+            </div>
+          </>
+        )}
+
+        {screen === "employee-apply" && (
+          <>
+            <p className="auth-kicker">Employee application</p>
+            <h1 className="auth-title">Apply for bank access.</h1>
+            <p className="auth-subtitle">Submit your complete details. Manager approval is required before you can log in.</p>
+            {error && <div className="auth-banner" role="alert">{error}</div>}
+            <form onSubmit={submitEmployee}>
+              <div className="application-grid">
+                <Field label="Full name"><input className="auth-input" required value={employeeForm.name}
+                  onChange={(event) => setEmployeeForm({ ...employeeForm, name: event.target.value })}
+                  placeholder="Full legal name" /></Field>
+                <Field label="Phone number"><input className="auth-input" required type="tel" value={employeeForm.phone}
+                  onChange={(event) => setEmployeeForm({ ...employeeForm, phone: event.target.value })}
+                  placeholder="03XX XXXXXXX" /></Field>
+              </div>
+              <div className="application-grid">
+                <Field label="Email address"><input className="auth-input" required type="email" value={employeeForm.email}
+                  onChange={(event) => setEmployeeForm({ ...employeeForm, email: event.target.value })}
+                  placeholder="name@email.com" /></Field>
+                <Field label="CNIC"><input className="auth-input" required value={employeeForm.cnic}
+                  onChange={(event) => setEmployeeForm({ ...employeeForm, cnic: event.target.value })}
+                  placeholder="XXXXX-XXXXXXX-X" /></Field>
+              </div>
+              <div className="application-grid">
+                <Field label="Create password"><input className="auth-input" required minLength="6" type="password" value={employeeForm.password}
+                  onChange={(event) => setEmployeeForm({ ...employeeForm, password: event.target.value })}
+                  placeholder="At least 6 characters" /></Field>
+                <Field label="Department"><select className="auth-input" value={employeeForm.department}
+                  onChange={(event) => setEmployeeForm({ ...employeeForm, department: event.target.value })}>
+                  <option>Operations</option><option>Customer Service</option><option>Credit</option><option>Compliance</option>
+                </select></Field>
+              </div>
+              <div className="application-grid">
+                <Field label="Experience"><input className="auth-input" required value={employeeForm.experience}
+                  onChange={(event) => setEmployeeForm({ ...employeeForm, experience: event.target.value })}
+                  placeholder="e.g. 2 years" /></Field>
+                <Field label="Qualification"><input className="auth-input" required value={employeeForm.qualification}
+                  onChange={(event) => setEmployeeForm({ ...employeeForm, qualification: event.target.value })}
+                  placeholder="e.g. BBA Finance" /></Field>
+              </div>
+              <button className="auth-button" disabled={loading}>
+                {loading ? "Submitting application..." : "Submit for manager approval"}
+              </button>
+            </form>
+            <button className="back-button" type="button" onClick={() => openScreen("login")}>← Back to sign in</button>
+          </>
+        )}
+
+        {screen === "customer-password" && (
+          <>
+            <p className="auth-kicker">First-time account security</p>
+            <h1 className="auth-title">Set your permanent password.</h1>
+            <p className="auth-subtitle">
+              Your temporary password worked. Choose the password you want to use for all future sign-ins.
+            </p>
+            {error && <div className="auth-banner" role="alert">{error}</div>}
+            <form onSubmit={submitCustomerPassword}>
+              <Field label="New permanent password"><input className="auth-input" required minLength="8" type="password"
+                autoComplete="new-password" value={passwordForm.password}
+                onChange={(event) => setPasswordForm({ ...passwordForm, password: event.target.value })}
+                placeholder="At least 8 characters" /></Field>
+              <Field label="Confirm permanent password"><input className="auth-input" required minLength="8" type="password"
+                autoComplete="new-password" value={passwordForm.confirm}
+                onChange={(event) => setPasswordForm({ ...passwordForm, confirm: event.target.value })}
+                placeholder="Enter the same password again" /></Field>
+              <button className="auth-button" disabled={loading}>
+                {loading ? "Securing account..." : "Save permanent password"}
+              </button>
+            </form>
+          </>
+        )}
+      </section>
+    </main>
+  );
 }
