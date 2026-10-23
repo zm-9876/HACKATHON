@@ -1,0 +1,21 @@
+import { Link } from "react-router-dom";
+import "./landing.css";
+import "../theme.css";
+
+const highlights = [
+  ["Customer banking", "Employee-created accounts, controlled requests, and secure account statements."],
+  ["Employee workspace", "Create customer accounts and process verified banking requests."],
+  ["Manager control", "Manage employees, approve high-value loans, and monitor bank performance."],
+];
+
+export default function LandingPage() {
+  return <main className="landing-page">
+    <nav className="landing-nav"><Link to="/" className="landing-brand"><span>V</span> Vertex<b>Bank</b></Link></nav>
+    <section className="landing-hero"><div className="landing-copy"><p className="landing-kicker"><i /> Enterprise digital banking</p><h1>Banking designed around <em>clarity and control.</em></h1><p>One secure workspace for everyday banking, managed approvals, and accountable financial operations.</p><div className="landing-actions"><Link className="landing-primary" to="/login">Get started <span>→</span></Link><a className="landing-secondary" href="#services">Explore services</a></div><div className="landing-proof"><div><b>24/7</b><span>Digital access</span></div><div><b>3 roles</b><span>Controlled workspaces</span></div><div><b>100%</b><span>Request-based workflow</span></div></div></div><div className="landing-visual" aria-label="VertexBank account overview preview"><div className="visual-glow" /><div className="bank-card"><div className="bank-card-top"><span>Available balance</span><i>VB</i></div><strong>PKR 285,000</strong><small>•••• 1048&nbsp;&nbsp; Savings account</small><div className="bank-card-bottom"><span>VertexBank</span><b>ACTIVE</b></div></div><div className="visual-panel visual-panel--activity"><span className="panel-icon">↗</span><div><small>Recent activity</small><strong>Deposit approved</strong></div><b>PKR 50,000</b></div><div className="visual-panel visual-panel--secure"><span>✓</span><div><strong>Protected by design</strong><small>Every request is traceable</small></div></div></div></section>
+    <section className="landing-trust"><span>Built for controlled financial workflows</span><div><b>Role-based access</b><b>Secure session handling</b><b>Auditable approvals</b><b>Real-time updates</b></div></section>
+    <section className="landing-services" id="services"><div className="section-heading"><p>One platform, clear responsibilities</p><h2>Professional service for every banking role.</h2><span>Each workspace exposes only the tools and information appropriate to its role—exactly where it is needed.</span></div><div className="service-grid">{highlights.map(([title, copy], index) => <article className="service-card" key={title}><span className="service-number">0{index + 1}</span><h3>{title}</h3><p>{copy}</p><span className="service-arrow">→</span></article>)}</div><div className="landing-requirements"><article><span>Customer</span><strong>Access an employee-created account, submit requests, and track every decision.</strong></article><article><span>Employee</span><strong>Create customer accounts and process permitted banking requests.</strong></article><article><span>Manager</span><strong>Create employees, approve high-value loans, and oversee operations.</strong></article></div></section>
+    <section className="landing-security" id="security"><div><p className="landing-kicker"><i /> Built with accountability</p><h2>Every important action has a clear path.</h2><p>Balances remain protected behind request, review, and approval workflows. The right people see the right information at the right time.</p></div><div className="security-list"><p><span>01</span> Customer requests stay controlled</p><p><span>02</span> Employee access is manager-created</p><p><span>03</span> High-value activity receives attention</p></div></section>
+    <section className="landing-cta"><div><p>Ready when you are</p><h2>Start your secure banking experience.</h2></div><Link className="landing-primary" to="/login">Sign in to VertexBank <span>→</span></Link></section>
+    <footer className="landing-footer"><span>© 2026 VertexBank. Enterprise banking portal.</span><span>Secure · Accountable · Built for clarity</span></footer>
+  </main>;
+}
